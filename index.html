@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>JAVI</title>
+<style>
+  :root {
+    --cyan: #00f5ff;
+    --cyan-dim: #007a88;
+    --bg: #020b12;
+    --card: #071a2b;
+    --card-border: rgba(0,245,255,0.15);
+    --text: #cce8f0;
+    --danger: #ff3c6e;
+    --green: #00ff88;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+    background-size: 36px 36px;
+    z-index: 0;
+    animation: gridPulse 8s ease-in-out infinite;
+  }
+
+  @keyframes gridPulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 430px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 48px;
+  }
+
+  header {
+    text-align: center;
+    padding: 24px 20px 10px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .clock-section {
+    text-align: center;
+    padding: 14px 10px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .divider {
+    height: 1px;
+    margin: 0 20px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.25;
+  }
+
+  .card {
+    margin: 14px 14px 0;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 16px 15px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.4;
+  }
+
+  .card-label { margin-bottom: 12px; }
+
+  textarea {
+    width: 100%;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(0,245,255,0.18);
+    border-radius: 10px;
+    color: #00f5ff;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    padding: 12px 13px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.3s;
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+  }
+
+  textarea:focus { border-color: rgba(0,245,255,0.55); box-shadow: 0 0 10px rgba(0,245,255,0.07); }
+  textarea::placeholder { color: rgba(0,245,255,0.18); }
+
+  .schedule-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 11px;
+  }
+
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+
+  input[type="date"], input[type="time"] {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(0,245,255,0.18);
+    border-radius: 8px;
+    color: #00f5ff;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92rem;
+    padding: 10px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.3s;
+    color-scheme: dark;
+    letter-spacing: 0.05em;
+  }
+
+  input:focus { border-color: rgba(0,245,255,0.55); }
+
+  .btn-add {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    border-radius: 10px;
+    color: var(--cyan);
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    padding: 11px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-add::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--cyan);
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+    z-index: -1;
+  }
+
+  .btn-add:hover::before { transform: translateX(0); }
+  .btn-add:hover { color: var(--bg); box-shadow: 0 0 18px rgba(0,245,255,0.35); }
+  .btn-add:active { transform: scale(0.97); }
+
+  .scheduled-list { display: flex; flex-direction: column; gap: 9px; margin-top: 2px; }
+
+  .scheduled-item {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,245,255,0.1);
+    border-radius: 10px;
+    padding: 11px 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    transition: border-color 0.3s;
+  }
+
+  .scheduled-item.active { border-color: var(--green); box-shadow: 0 0 10px rgba(0,255,136,0.12); }
+  .scheduled-item.fired { border-color: rgba(255,60,110,0.25); opacity: 0.5; }
+
+  .item-icon {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--cyan);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; color: var(--cyan);
+    flex-shrink: 0; margin-top: 2px;
+  }
+
+  .scheduled-item.active .item-icon {
+    border-color: var(--green); color: var(--green);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.5)}
+    50%{box-shadow:0 0 0 5px rgba(0,255,136,0)}
+  }
+
+  .item-info { flex: 1; min-width: 0; }
+
+  .item-datetime {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+
+  .scheduled-item.active .item-datetime { color: var(--green); }
+
+  .item-text {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--text);
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-countdown {
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    color: var(--cyan-dim);
+    margin-top: 3px;
+    letter-spacing: 0.08em;
+  }
+
+  .btn-delete {
+    background: none; border: none;
+    color: rgba(255,60,110,0.45);
+    cursor: pointer; font-size: 0.95rem;
+    padding: 2px 4px; transition: color 0.2s;
+    flex-shrink: 0; margin-top: 2px;
+  }
+
+  .btn-delete:hover { color: var(--danger); }
+
+  .empty-state {
+    text-align: center; padding: 18px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    color: rgba(0,245,255,0.15);
+    letter-spacing: 0.12em;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--card);
+    border: 1px solid var(--cyan);
+    border-radius: 12px;
+    padding: 11px 22px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: var(--cyan);
+    text-align: center;
+    z-index: 200;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    max-width: 310px;
+    box-shadow: 0 0 25px rgba(0,245,255,0.18);
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .speaking-bar { display:none; align-items:center; justify-content:center; gap:3px; }
+  .speaking-bar.active { display:flex; }
+  .speaking-bar span { width:3px; border-radius:2px; background:var(--green); animation:barAnim .8s ease-in-out infinite; }
+  .speaking-bar span:nth-child(1){height:7px;animation-delay:0s}
+  .speaking-bar span:nth-child(2){height:14px;animation-delay:.1s}
+  .speaking-bar span:nth-child(3){height:10px;animation-delay:.2s}
+  .speaking-bar span:nth-child(4){height:18px;animation-delay:.3s}
+  .speaking-bar span:nth-child(5){height:9px;animation-delay:.15s}
+  @keyframes barAnim{0%,100%{transform:scaleY(.3);opacity:.4}50%{transform:scaleY(1);opacity:1}}
+
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header><div id="titleDisplay"></div></header>
+
+  <div class="clock-section">
+    <div id="clockDisplay"></div>
+    <div class="speaking-bar" id="speakingBar">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div id="dateDisplay"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="card">
+    <div class="card-label" id="lbl1"></div>
+    <textarea id="messageInput" rows="3" placeholder="Escribe el texto que se escuchará..."></textarea>
+  </div>
+
+  <div class="card">
+    <div class="card-label" id="lbl2"></div>
+    <div class="schedule-inputs">
+      <div class="input-group">
+        <div id="lbl-fecha"></div>
+        <input type="date" id="dateInput">
+      </div>
+      <div class="input-group">
+        <div id="lbl-hora"></div>
+        <input type="time" id="timeInput">
+      </div>
+    </div>
+    <button class="btn-add" onclick="addSchedule()">+ AÑADIR ALARMA</button>
+  </div>
+
+  <div class="card">
+    <div class="card-label" id="lbl3"></div>
+    <div class="scheduled-list" id="scheduledList">
+      <div class="empty-state">— SIN ALARMAS —</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================
+   SEGMENT DISPLAY ENGINE
+   ===================================================== */
+
+// 7-segment: [a, b, c, d, e, f, g]
+const S7 = {
+  '0':[1,1,1,1,1,1,0], '1':[0,1,1,0,0,0,0], '2':[1,1,0,1,1,0,1],
+  '3':[1,1,1,1,0,0,1], '4':[0,1,1,0,0,1,1], '5':[1,0,1,1,0,1,1],
+  '6':[1,0,1,1,1,1,1], '7':[1,1,1,0,0,0,0], '8':[1,1,1,1,1,1,1],
+  '9':[1,1,1,1,0,1,1], ' ':[0,0,0,0,0,0,0], '-':[0,0,0,0,0,0,1],
+};
+
+// 14-segment: [a,b,c,d,e,f,g1,g2,h,i,j,k,l,m]
+const S14 = {
+  '0':[1,1,1,1,1,1,0,0,0,0,0,0,0,0], '1':[0,0,0,0,0,0,0,0,0,1,0,0,1,0],
+  '2':[1,1,0,1,1,0,1,1,0,0,0,0,0,0], '3':[1,1,1,1,0,0,1,1,0,0,0,0,0,0],
+  '4':[0,1,1,0,0,1,1,1,0,0,0,0,0,0], '5':[1,0,1,1,0,1,1,1,0,0,0,0,0,0],
+  '6':[1,0,1,1,1,1,1,1,0,0,0,0,0,0], '7':[1,0,0,0,0,0,0,0,0,1,0,0,1,0],
+  '8':[1,1,1,1,1,1,1,1,0,0,0,0,0,0], '9':[1,1,1,1,0,1,1,1,0,0,0,0,0,0],
+  'A':[1,1,1,0,1,1,1,1,0,0,0,0,0,0], 'B':[1,1,1,1,0,0,1,1,0,0,0,1,0,1],
+  'C':[1,0,0,1,1,1,0,0,0,0,0,0,0,0], 'D':[1,1,1,1,0,0,0,0,0,0,0,1,0,1],
+  'E':[1,0,0,1,1,1,1,1,0,0,0,0,0,0], 'F':[1,0,0,0,1,1,1,1,0,0,0,0,0,0],
+  'G':[1,0,1,1,1,1,0,1,0,0,0,0,0,0], 'H':[0,1,1,0,1,1,1,1,0,0,0,0,0,0],
+  'I':[1,0,0,1,0,0,0,0,0,1,0,0,1,0], 'J':[0,1,1,1,1,0,0,0,0,0,0,0,0,0],
+  'K':[0,0,0,0,1,1,1,0,0,0,1,0,0,1], 'L':[0,0,0,1,1,1,0,0,0,0,0,0,0,0],
+  'M':[0,1,1,0,1,1,0,0,1,0,0,0,1,0], 'N':[0,1,1,0,1,1,0,0,1,0,0,0,0,1],
+  'O':[1,1,1,1,1,1,0,0,0,0,0,0,0,0], 'P':[1,1,0,0,1,1,1,1,0,0,0,0,0,0],
+  'Q':[1,1,1,1,1,1,0,0,0,0,0,0,0,1], 'R':[1,1,0,0,1,1,1,1,0,0,0,0,0,1],
+  'S':[1,0,1,1,0,1,1,1,0,0,0,0,0,0], 'T':[1,0,0,0,0,0,0,0,0,1,0,0,1,0],
+  'U':[0,1,1,1,1,1,0,0,0,0,0,0,0,0], 'V':[0,0,0,0,1,1,0,0,0,0,1,0,1,0],
+  'W':[0,1,1,0,1,1,0,0,0,0,0,1,0,1], 'X':[0,0,0,0,0,0,0,0,1,0,1,0,0,1],
+  'Y':[0,1,1,0,0,1,1,1,0,0,0,0,0,0], 'Z':[1,0,0,1,0,0,0,0,0,0,1,0,1,0],
+  ' ':[0,0,0,0,0,0,0,0,0,0,0,0,0,0], '-':[0,0,0,0,0,0,1,1,0,0,0,0,0,0],
+  ',':[0,0,0,0,0,0,0,0,0,0,1,0,0,0], '.':[0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  '!':[0,0,0,0,0,0,0,0,0,1,0,0,1,0], '?':[1,1,0,0,0,0,0,1,0,0,0,0,1,0],
+  '+':[0,0,0,0,0,0,1,1,0,1,0,0,1,0], '/':[0,0,0,0,0,0,0,0,0,0,1,0,1,0],
+};
+
+const GLOW_DEF = `<defs><filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+  <feGaussianBlur stdDeviation="1.8" result="b"/>
+  <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter></defs>`;
+
+function hexPoly(pts, fill, glow) {
+  return `<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="${fill}" ${glow?'filter="url(#glow)"':''}/>`;
+}
+
+function hSeg7(x1, y, w, T, on, colorOn, colorOff, glow) {
+  const off = T*0.38;
+  const c = on ? colorOn : colorOff;
+  const g = on && glow;
+  return hexPoly([
+    [x1+off, y],[x1+w-off, y],[x1+w, y+T/2],[x1+w-off, y+T],[x1+off, y+T],[x1, y+T/2]
+  ], c, g);
+}
+
+function vSeg7(x, y1, h, T, on, colorOn, colorOff, glow) {
+  const off = T*0.38;
+  const c = on ? colorOn : colorOff;
+  const g = on && glow;
+  return hexPoly([
+    [x, y1+off],[x+T/2, y1],[x+T, y1+off],[x+T, y1+h-off],[x+T/2, y1+h],[x, y1+h-off]
+  ], c, g);
+}
+
+function draw7(ch, W, H, colorOn, colorOff, glow) {
+  const s = S7[ch] || S7[' '];
+  const T = W * 0.14;
+  const G = W * 0.04;
+  const mid = H / 2;
+  const hw = W - 2*T - 2*G;
+  return [
+    hSeg7(T+G, 0,      hw, T, s[0], colorOn, colorOff, glow),
+    vSeg7(W-T, T+G,    mid-T-2*G, T, s[1], colorOn, colorOff, glow),
+    vSeg7(W-T, mid+G,  mid-T-2*G, T, s[2], colorOn, colorOff, glow),
+    hSeg7(T+G, H-T,    hw, T, s[3], colorOn, colorOff, glow),
+    vSeg7(0,   mid+G,  mid-T-2*G, T, s[4], colorOn, colorOff, glow),
+    vSeg7(0,   T+G,    mid-T-2*G, T, s[5], colorOn, colorOff, glow),
+    hSeg7(T+G, mid-T/2, hw, T, s[6], colorOn, colorOff, glow),
+  ].join('');
+}
+
+function draw14(ch, W, H, colorOn, colorOff, glow) {
+  const c = ch.toUpperCase();
+  const s = S14[c] || S14[' '];
+  const T = W * 0.14;
+  const G = W * 0.03;
+  const mid = H / 2;
+  const cx = W / 2;
+
+  function hH(y, on) {
+    const hw = W - 2*T - 2*G;
+    return hSeg7(T+G, y, hw, T, on, colorOn, colorOff, glow);
+  }
+  function vV(x, y1, on) {
+    return vSeg7(x, y1+G, mid-T-2*G, T, on, colorOn, colorOff, glow);
+  }
+  function hHalf(y, x1, w, on) {
+    return hSeg7(x1, y, w, T, on, colorOn, colorOff, glow);
+  }
+  function diag(x1,y1,x2,y2,on) {
+    const col = on ? colorOn : colorOff;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${T}" stroke-linecap="round" ${on&&glow?'filter="url(#glow)"':''}/>`;
+  }
+
+  const halfW = (W - 2*T - 2*G) / 2 - G/2;
+
+  return [
+    hH(0, s[0]),                              // a top
+    hH(H-T, s[3]),                            // d bottom
+    vV(0, T, s[5]),                           // f top-left
+    vV(W-T, T, s[1]),                         // b top-right
+    vV(0, mid, s[4]),                         // e bot-left
+    vV(W-T, mid, s[2]),                       // c bot-right
+    hHalf(mid-T/2, T+G, halfW, s[6]),         // g1 left
+    hHalf(mid-T/2, cx+G/2, halfW, s[7]),      // g2 right
+    diag(T+G, T+G, cx-G, mid-G, s[8]),        // h top-left diag
+    vSeg7(cx-T/2, T+G, mid-T-2*G, T, s[9], colorOn, colorOff, glow), // i center top vert
+    diag(cx+G, T+G, W-T-G, mid-G, s[10]),     // j top-right diag
+    diag(T+G, H-T-G, cx-G, mid+G, s[11]),     // k bot-left diag
+    vSeg7(cx-T/2, mid+G, mid-T-2*G, T, s[12], colorOn, colorOff, glow), // l center bot vert
+    diag(cx+G, mid+G, W-T-G, H-T-G, s[13]),   // m bot-right diag
+  ].join('');
+}
+
+function buildSVG7(text, dW, dH, gap, colorOn, colorOff, glow) {
+  let x = 0, parts = [];
+  for (const ch of text) {
+    const w = ch === ':' ? dW * 0.32 : dW;
+    parts.push(`<g transform="translate(${x},0)">${draw7(ch, w, dH, colorOn, colorOff, glow)}</g>`);
+    if (ch === ':') {
+      const r = dH * 0.075;
+      const cx2 = x + w/2;
+      parts.push(`<circle cx="${cx2}" cy="${dH*0.28}" r="${r}" fill="${colorOn}" ${glow?'filter="url(#glow)"':''} class="bd"/>`);
+      parts.push(`<circle cx="${cx2}" cy="${dH*0.72}" r="${r}" fill="${colorOn}" ${glow?'filter="url(#glow)"':''} class="bd"/>`);
+    }
+    x += w + gap;
+  }
+  const W = x - gap;
+  return `<svg width="${W}" height="${dH}" viewBox="0 0 ${W} ${dH}" xmlns="http://www.w3.org/2000/svg">${GLOW_DEF}<style>.bd{animation:bd 1s step-end infinite}@keyframes bd{0%,100%{opacity:1}50%{opacity:.08}}</style>${parts.join('')}</svg>`;
+}
+
+function buildSVG14(text, dW, dH, gap, colorOn, colorOff, glow) {
+  let x = 0, parts = [];
+  for (const ch of text) {
+    let w = dW;
+    if (':;.,!'.includes(ch)) w = dW * 0.36;
+    else if (ch === ' ') w = dW * 0.45;
+    else if ('1I'.includes(ch.toUpperCase())) w = dW * 0.68;
+
+    parts.push(`<g transform="translate(${x},0)">${draw14(ch, w, dH, colorOn, colorOff, glow)}</g>`);
+
+    if (ch === ':') {
+      const r = dH * 0.08;
+      const cx2 = x + w * 0.5;
+      parts.push(`<circle cx="${cx2}" cy="${dH*0.3}" r="${r}" fill="${colorOn}" ${glow?'filter="url(#glow)"':''}/>`);
+      parts.push(`<circle cx="${cx2}" cy="${dH*0.7}" r="${r}" fill="${colorOn}" ${glow?'filter="url(#glow)"':''}/>`);
+    }
+    if (ch === '.') {
+      parts.push(`<circle cx="${x+w*0.65}" cy="${dH*0.87}" r="${dH*0.09}" fill="${colorOn}" ${glow?'filter="url(#glow)"':''}/>`);
+    }
+    x += w + gap;
+  }
+  const W = x - gap;
+  return `<svg width="${W}" height="${dH}" viewBox="0 0 ${W} ${dH}" xmlns="http://www.w3.org/2000/svg">${GLOW_DEF}${parts.join('')}</svg>`;
+}
+
+/* =====================================================
+   APP
+   ===================================================== */
+
+const DAYS_ES   = ['DOMINGO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
+const MONTHS_ES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+let schedules = JSON.parse(localStorage.getItem('javi_schedules') || '[]');
+let firedIds  = new Set(JSON.parse(localStorage.getItem('javi_fired') || '[]'));
+
+function renderLabels() {
+  document.getElementById('titleDisplay').innerHTML =
+    buildSVG14('JAVI', 40, 62, 5, '#00f5ff', 'rgba(0,245,255,0.04)', true);
+
+  document.getElementById('lbl1').innerHTML =
+    buildSVG14('MENSAJE DE VOZ', 13, 20, 2.5, '#00b8c4', 'rgba(0,184,196,0.04)', false);
+
+  document.getElementById('lbl2').innerHTML =
+    buildSVG14('PROGRAMAR ALARMA', 12, 19, 2.2, '#00b8c4', 'rgba(0,184,196,0.04)', false);
+
+  document.getElementById('lbl3').innerHTML =
+    buildSVG14('ALARMAS PROGRAMADAS', 10, 16, 1.8, '#00b8c4', 'rgba(0,184,196,0.04)', false);
+
+  document.getElementById('lbl-fecha').innerHTML =
+    buildSVG14('FECHA', 10, 14, 1.6, '#006070', 'rgba(0,96,112,0.03)', false);
+
+  document.getElementById('lbl-hora').innerHTML =
+    buildSVG14('HORA', 10, 14, 1.6, '#006070', 'rgba(0,96,112,0.03)', false);
+}
+
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+
+  document.getElementById('clockDisplay').innerHTML =
+    buildSVG7(`${h}:${m}:${s}`, 44, 84, 5, '#00f5ff', 'rgba(0,245,255,0.04)', true);
+
+  const dateStr = `${DAYS_ES[now.getDay()]} ${String(now.getDate()).padStart(2,'0')} ${MONTHS_ES[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('dateDisplay').innerHTML =
+    buildSVG14(dateStr, 11, 18, 2, '#007a88', 'rgba(0,122,136,0.03)', false);
+
+  checkSchedules(now);
+}
+
+function checkSchedules(now) {
+  schedules.forEach(s => {
+    if (firedIds.has(s.id)) return;
+    const target = new Date(s.datetime);
+    if (Math.abs(now - target) < 1000 && now >= target) {
+      firedIds.add(s.id);
+      saveSchedules();
+      speak(s.message);
+      renderList();
+    }
+  });
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) { showToast('SIN SOPORTE TTS'); return; }
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'es-ES'; u.rate = 0.95; u.pitch = 1.05;
+  const voices = speechSynthesis.getVoices();
+  const v = voices.find(v => v.lang.startsWith('es') && /Google|Natural|Premium|Paulina|Monica/.test(v.name))
+         || voices.find(v => v.lang.startsWith('es'));
+  if (v) u.voice = v;
+  document.getElementById('speakingBar').classList.add('active');
+  showToast('VOZ: ' + text.substring(0,35) + (text.length>35?'...':''));
+  u.onend = () => document.getElementById('speakingBar').classList.remove('active');
+  speechSynthesis.speak(u);
+}
+
+if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = ()=>{};
+
+function addSchedule() {
+  const msg  = document.getElementById('messageInput').value.trim();
+  const date = document.getElementById('dateInput').value;
+  const time = document.getElementById('timeInput').value;
+  if (!msg)        { showToast('ESCRIBE UN MENSAJE'); return; }
+  if (!date||!time){ showToast('SELECCIONA FECHA Y HORA'); return; }
+  if (new Date(`${date}T${time}:00`) <= new Date()) { showToast('LA FECHA YA PASO'); return; }
+  schedules.push({ id:Date.now(), message:msg, datetime:`${date}T${time}:00`,
+    label:`${date.split('-').reverse().join('/')} ${time}` });
+  saveSchedules(); renderList(); showToast('ALARMA PROGRAMADA');
+  document.getElementById('dateInput').value = '';
+  document.getElementById('timeInput').value = '';
+}
+
+function deleteSchedule(id) {
+  schedules = schedules.filter(s => s.id !== id);
+  firedIds.delete(id);
+  saveSchedules(); renderList();
+}
+
+function saveSchedules() {
+  localStorage.setItem('javi_schedules', JSON.stringify(schedules));
+  localStorage.setItem('javi_fired', JSON.stringify([...firedIds]));
+}
+
+function getCountdown(dt) {
+  const diff = new Date(dt) - new Date();
+  if (diff <= 0) return null;
+  const t = Math.floor(diff/1000);
+  const d=Math.floor(t/86400), h=Math.floor((t%86400)/3600), m=Math.floor((t%3600)/60), s=t%60;
+  if (d>0) return `${d}D ${h}H ${m}M`;
+  if (h>0) return `${h}H ${m}M ${s}S`;
+  return `${m}M ${s}S`;
+}
+
+function renderList() {
+  const list = document.getElementById('scheduledList');
+  if (!schedules.length) { list.innerHTML='<div class="empty-state">— SIN ALARMAS —</div>'; return; }
+  const sorted = [...schedules].sort((a,b)=>new Date(a.datetime)-new Date(b.datetime));
+  list.innerHTML = sorted.map(s => {
+    const fired = firedIds.has(s.id);
+    const past  = new Date(s.datetime) < new Date();
+    const cls   = fired||past ? 'fired' : 'active';
+    const icon  = fired||past ? '✓' : '◉';
+    const cd    = (!fired&&!past) ? getCountdown(s.datetime) : (fired?'DISPARADA':'PASADA');
+    return `<div class="scheduled-item ${cls}">
+      <div class="item-icon">${icon}</div>
+      <div class="item-info">
+        <div class="item-datetime">${s.label}</div>
+        <div class="item-text">${s.message}</div>
+        <div class="item-countdown">${cd||''}</div>
+      </div>
+      <button class="btn-delete" onclick="deleteSchedule(${s.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+// Init
+renderLabels();
+updateClock();
+setInterval(updateClock, 1000);
+renderList();
+setInterval(renderList, 1000);
+
+(function() {
+  const d = new Date(Date.now()+5*60000);
+  const p = n=>String(n).padStart(2,'0');
+  document.getElementById('dateInput').value = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  document.getElementById('timeInput').value = `${p(d.getHours())}:${p(d.getMinutes())}`;
+})();
+</script>
+</body>
+</html>
